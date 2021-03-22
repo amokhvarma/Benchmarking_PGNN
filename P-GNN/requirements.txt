@@ -1,0 +1,4 @@
+torch-scatter torch-sparse -f https://pytorch-geometric.com/whl/torch-1.8.0+cu101.html
+torch-cluster -f https://pytorch-geometric.com/whl/torch-1.8.0+cu101.html
+torch-geometric==1.4.3
+tensorboardx
