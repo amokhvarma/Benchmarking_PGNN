@@ -88,6 +88,7 @@ def get_tg_dataset(args, dataset_name, use_cache=True, remove_feature=False):
         links_val_list = []
         links_test_list = []
         for i, data in enumerate(dataset):
+            print(data)
             if 'link' in args.task:
                 get_link_mask(data, args.remove_link_ratio, resplit=True,
                               infer_link_positive=True if args.task == 'link' else False)
@@ -240,6 +241,7 @@ def load_graphs(dataset_str):
             feature = np.identity(graph.number_of_nodes())
             graphs.append(graph)
             features.append(feature)
+
 
     elif dataset_str == 'communities':
         graphs = []

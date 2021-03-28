@@ -11,4 +11,4 @@ pip install torch-cluster -f https://pytorch-geometric.com/whl/torch-1.8.0+cu101
 pip install torch-spline-conv -f https://pytorch-geometric.com/whl/torch-1.8.0+cu101.html
 pip install torch-geometric
 unzip data/ppi.zip -d data/
-tensorboardx
+pip install tensorboardx

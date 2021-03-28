@@ -1,3 +1,0 @@
-#!/home/amokh/PycharmProjects/Benchmarking_PGNN/P-GNN/GNN/bin/python3.7
-from numba.pycc import main
-main()

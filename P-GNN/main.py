@@ -1,11 +1,13 @@
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score,accuracy_score,precision_score,recall_score,f1_score
 from tensorboardX import SummaryWriter
-
+import os
 from args import *
 from model import *
 from utils import *
 from dataset import *
-
+import time
+import numpy as np
+import torch
 if not os.path.isdir('results'):
     os.mkdir('results')
 # args
@@ -43,10 +45,10 @@ for task in ['link', 'link_pair']:
         # else:
         #     args.epoch_num = 401
         #     args.cache = True
-        results = []
+        results_auc,results_acc,results_prec,results_rec,results_f1 = [],[],[],[],[]
         for repeat in range(args.repeat_num):
             result_val = []
-            result_test = []
+            result_auc,result_acc,result_prec,result_rec,result_f1 = [],[],[],[],[]
             time1 = time.time()
             data_list = get_tg_dataset(args, dataset_name, use_cache=args.cache, remove_feature=args.rm_feature)
             time2 = time.time()
@@ -156,6 +158,12 @@ for task in ['link', 'link_pair']:
                         label = torch.cat((label_positive, label_negative)).to(device)
                         loss_train += loss_func(pred, label).cpu().data.numpy()
                         auc_train += roc_auc_score(label.flatten().cpu().numpy(), out_act(pred).flatten().data.cpu().numpy())
+                        label_train_numpy = np.where(label.flatten().cpu().numpy() > 0.5 , 1 , 0)
+                        pred_train_numpy = np.where(out_act(pred).flatten().data.cpu().numpy()>0.5, 1 ,0)
+                        accuracy_train = accuracy_score(label_train_numpy,pred_train_numpy)
+                        precision_train = precision_score(label_train_numpy,pred_train_numpy)
+                        recall_train = recall_score(label_train_numpy,pred_train_numpy)
+                        f1_train = f1_score(label_train_numpy,pred_train_numpy)
                         # val
                         edge_mask_val = np.concatenate((data.mask_link_positive_val, data.mask_link_negative_val), axis=-1)
                         nodes_first = torch.index_select(out, 0, torch.from_numpy(edge_mask_val[0, :]).long().to(device))
@@ -166,6 +174,13 @@ for task in ['link', 'link_pair']:
                         label = torch.cat((label_positive, label_negative)).to(device)
                         loss_val += loss_func(pred, label).cpu().data.numpy()
                         auc_val += roc_auc_score(label.flatten().cpu().numpy(), out_act(pred).flatten().data.cpu().numpy())
+                        label_val_numpy = np.where(label.flatten().cpu().numpy()>0.5,1,0)
+                        pred_val_numpy = np.where(out_act(pred).flatten().data.cpu().numpy()>0.5,1,0)
+                        accuracy_val = accuracy_score(label_val_numpy, pred_val_numpy)
+                        precision_val = precision_score(label_val_numpy, pred_val_numpy)
+                        recall_val = recall_score(label_val_numpy, pred_val_numpy)
+                        f1_val = f1_score(label_val_numpy, pred_val_numpy)
+
                         # test
                         edge_mask_test = np.concatenate((data.mask_link_positive_test, data.mask_link_negative_test), axis=-1)
                         nodes_first = torch.index_select(out, 0, torch.from_numpy(edge_mask_test[0, :]).long().to(device))
@@ -176,6 +191,12 @@ for task in ['link', 'link_pair']:
                         label = torch.cat((label_positive, label_negative)).to(device)
                         loss_test += loss_func(pred, label).cpu().data.numpy()
                         auc_test += roc_auc_score(label.flatten().cpu().numpy(), out_act(pred).flatten().data.cpu().numpy())
+                        label_test_numpy = np.where(label.flatten().cpu().numpy()>0.5,1,0)
+                        pred_test_numpy = np.where(out_act(pred).flatten().data.cpu().numpy()>0.5,1,0)
+                        accuracy_test = accuracy_score(label_test_numpy, pred_test_numpy)
+                        precision_test = precision_score(label_test_numpy, pred_test_numpy)
+                        recall_test = recall_score(label_test_numpy, pred_test_numpy)
+                        f1_test = f1_score(label_test_numpy, pred_test_numpy)
 
                     loss_train /= id+1
                     loss_val /= id+1
@@ -186,32 +207,87 @@ for task in ['link', 'link_pair']:
                     auc_train /= id+1
                     auc_val /= id+1
                     auc_test /= id+1
+                    accuracy_train /= id+1
+                    accuracy_val /= id+1
+                    accuracy_test /= id+1
+                    precision_train /= id+1
+                    precision_val /= id+1
+                    precision_test /= id+1
+                    recall_train /= id+1
+                    recall_val /= id+1
+                    recall_test /= id+1
+                    f1_train /= id+1
+                    f1_val /= id+1
+                    f1_test /= id+1
 
-                    print(repeat, epoch, 'Loss {:.4f}'.format(loss_train), 'Train AUC: {:.4f}'.format(auc_train),
+                    print("\n",repeat, epoch, 'Loss {:.4f}'.format(loss_train), 'Train AUC: {:.4f}'.format(auc_train),
                           'Val AUC: {:.4f}'.format(auc_val), 'Test AUC: {:.4f}'.format(auc_test))
+                    print(repeat, epoch, 'Train Acc {:.4f}'.format(accuracy_train), 'Val Acc: {:.4f}'.format(accuracy_val),
+                          'Test Acc: {:.4f}'.format(accuracy_test), 'Train prec: {:.4f}'.format(precision_train), \
+                            'Val prec: {:.4f}'.format(precision_val),'Test prec: {:.4f}'.format(precision_test))
+                    print(repeat, epoch, 'Train Rec {:.4f}'.format(recall_train),
+                          'Val Rec: {:.4f}'.format(recall_val),
+                          'Test Rec: {:.4f}'.format(recall_test), 'Train F1: {:.4f}'.format(f1_train), \
+                          'Val F1: {:.4f}'.format(f1_val), 'Test F1: {:.4f}'.format(f1_test))
+
                     writer_train.add_scalar('repeat_' + str(repeat) + '/auc_'+dataset_name, auc_train, epoch)
                     writer_train.add_scalar('repeat_' + str(repeat) + '/loss_'+dataset_name, loss_train, epoch)
                     writer_val.add_scalar('repeat_' + str(repeat) + '/auc_'+dataset_name, auc_val, epoch)
                     writer_train.add_scalar('repeat_' + str(repeat) + '/loss_'+dataset_name, loss_val, epoch)
                     writer_test.add_scalar('repeat_' + str(repeat) + '/auc_'+dataset_name, auc_test, epoch)
                     writer_test.add_scalar('repeat_' + str(repeat) + '/loss_'+dataset_name, loss_test, epoch)
+
+                    writer_train.add_scalar('repeat_' + str(repeat) + '/acc_' + dataset_name, accuracy_train, epoch)
+                    writer_train.add_scalar('repeat_' + str(repeat) + '/prec_' + dataset_name, precision_train, epoch)
+                    writer_val.add_scalar('repeat_' + str(repeat) + '/acc_' + dataset_name, accuracy_val, epoch)
+                    writer_train.add_scalar('repeat_' + str(repeat) + '/prec_' + dataset_name, precision_val, epoch)
+                    writer_test.add_scalar('repeat_' + str(repeat) + '/acc_' + dataset_name, accuracy_test, epoch)
+                    writer_test.add_scalar('repeat_' + str(repeat) + '/prec_' + dataset_name, precision_val, epoch)
+
+                    writer_train.add_scalar('repeat_' + str(repeat) + '/rec_' + dataset_name, recall_train, epoch)
+                    writer_train.add_scalar('repeat_' + str(repeat) + '/f1_' + dataset_name, f1_train, epoch)
+                    writer_val.add_scalar('repeat_' + str(repeat) + '/rec_' + dataset_name, recall_val, epoch)
+                    writer_train.add_scalar('repeat_' + str(repeat) + '/f1_' + dataset_name, f1_val, epoch)
+                    writer_test.add_scalar('repeat_' + str(repeat) + '/rec_' + dataset_name, recall_test, epoch)
+                    writer_test.add_scalar('repeat_' + str(repeat) + '/f1_' + dataset_name, f1_test, epoch)
+
+
                     writer_test.add_scalar('repeat_' + str(repeat) + '/emb_min_'+dataset_name, emb_norm_min, epoch)
                     writer_test.add_scalar('repeat_' + str(repeat) + '/emb_max_'+dataset_name, emb_norm_max, epoch)
                     writer_test.add_scalar('repeat_' + str(repeat) + '/emb_mean_'+dataset_name, emb_norm_mean, epoch)
+
                     result_val.append(auc_val)
-                    result_test.append(auc_test)
+                    result_auc.append(auc_test)
+                    result_acc.append(accuracy_test)
+                    result_prec.append(precision_test)
+                    result_rec.append(recall_test)
+                    result_f1.append(f1_test)
 
 
             result_val = np.array(result_val)
-            result_test = np.array(result_test)
-            results.append(result_test[np.argmax(result_val)])
-        results = np.array(results)
-        results_mean = np.mean(results).round(6)
-        results_std = np.std(results).round(6)
+            result_auc = np.array(result_auc)
+            index = np.argmax(result_val)
+            results_auc.append(result_auc[index])
+            results_acc.append(result_acc[index])
+            results_prec.append(result_prec[index])
+            results_rec.append(result_rec[index])
+            results_f1.append(result_f1[index])
+
+
+
+        results_auc = np.array(results_auc)
+        results_acc = np.array(results_acc)
+        results_prec = np.array(results_prec)
+        results_rec = np.array(results_rec)
+        results_f1 = np.array(results_f1)
         print('-----------------Final-------------------')
-        print(results_mean, results_std)
+        #print(results_mean, results_std)
         with open('results/{}_{}_{}_layer{}_approximate{}.txt'.format(args.task,args.model,dataset_name,args.layer_num,args.approximate), 'w') as f:
-            f.write('{}, {}\n'.format(results_mean, results_std))
+            f.write('AUC : {}, {}\n'.format(np.mean(results_auc).round(6), np.std(results_auc).round(6)))
+            f.write('ACC : {}, {}\n'.format(np.mean(results_acc).round(6), np.std(results_acc).round(6)))
+            f.write('PREC : {}, {}\n'.format(np.mean(results_prec).round(6), np.std(results_prec).round(6)))
+            f.write('REC : {}, {}\n'.format(np.mean(results_rec).round(6), np.std(results_rec).round(6)))
+            f.write('F1 : {}, {}\n'.format(np.mean(results_f1).round(6), np.std(results_f1).round(6)))
 
 # export scalar data to JSON for external processing
 writer_train.export_scalars_to_json("./all_scalars.json")
