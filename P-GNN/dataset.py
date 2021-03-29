@@ -279,6 +279,42 @@ def load_graphs(dataset_str):
             features.append(feature)
             edge_labels.append(label)
 
+    elif dataset_str == "Brightkite":
+        graphs = []
+        features = []
+        node_labels = []
+        edge_labels = []
+        community_size = 10
+        for i in range(1):
+            p=0.01
+
+            graph = make_graph(file="data/Brightkite.txt")
+
+            count = 0
+
+            for (u, v) in graph.edges():
+                if random.random() < p:  # rewire the edge
+                    x = random.choice(list(graph.nodes))
+                    if graph.has_edge(u, x):
+                        continue
+                    graph.remove_edge(u, v)
+                    graph.add_edge(u, x)
+                    count += 1
+            print('rewire:', count)
+
+            n = graph.number_of_nodes()
+            label = np.zeros((n,n),dtype=int)
+            for u in list(graph.nodes):
+                for v in list(graph.nodes):
+                    if u//community_size == v//community_size and u>v:
+                        label[u,v] = 1
+            rand_order = np.random.permutation(graph.number_of_nodes())
+            feature = np.identity(graph.number_of_nodes())[:,rand_order]
+            graphs.append(graph)
+            features.append(feature)
+            edge_labels.append(label)
+
+
     elif dataset_str == 'protein':
 
         graphs_all, features_all, labels_all = Graph_load_batch(name='PROTEINS_full')
@@ -386,4 +422,21 @@ def load_graphs(dataset_str):
 
 def load_tg_dataset(name='communities'):
     graphs, features, edge_labels,_,_,_,_ = load_graphs(name)
+    print(graphs,features,edge_labels)
     return nx_to_tg_data(graphs, features, edge_labels)
+
+def make_graph(file):
+    added_node = {}
+    f = open(file)
+    data = f.readlines()
+    graph = nx.Graph()
+    for i in range(0,len(data[:10000])):
+        node1,node2 = int(data[i][0:-1].split("\t")[0]) ,  int(data[i][0:-1].split("\t")[0])
+        if not node1 in added_node.keys():
+            added_node[node1] = 1
+        if not node2 in added_node.keys():
+            added_node[node2] = 1
+        graph.add_edge(node1,node2)
+
+
+    return graph

@@ -1,4 +1,4 @@
-from sklearn.metrics import roc_auc_score,accuracy_score,precision_score,recall_score,f1_score
+from sklearn.metrics import roc_curve, roc_auc_score,accuracy_score,precision_score,recall_score,f1_score
 from tensorboardX import SummaryWriter
 import os
 from args import *
@@ -141,6 +141,20 @@ for task in ['link', 'link_pair']:
                     emb_norm_min = 0
                     emb_norm_max = 0
                     emb_norm_mean = 0
+                    accuracy_train=0
+                    accuracy_val=0
+                    accuracy_test=0
+                    precision_train=0
+                    precision_val=0
+                    precision_test=0
+                    recall_train=0
+                    recall_val=0
+                    recall_test=0
+                    f1_train=0
+                    f1_val=0
+                    f1_test=0
+
+
                     for id, data in enumerate(data_list):
                         out = model(data)
                         emb_norm_min += torch.norm(out.data, dim=1).min().cpu().numpy()
@@ -158,12 +172,18 @@ for task in ['link', 'link_pair']:
                         label = torch.cat((label_positive, label_negative)).to(device)
                         loss_train += loss_func(pred, label).cpu().data.numpy()
                         auc_train += roc_auc_score(label.flatten().cpu().numpy(), out_act(pred).flatten().data.cpu().numpy())
-                        label_train_numpy = np.where(label.flatten().cpu().numpy() > 0.5 , 1 , 0)
-                        pred_train_numpy = np.where(out_act(pred).flatten().data.cpu().numpy()>0.5, 1 ,0)
-                        accuracy_train = accuracy_score(label_train_numpy,pred_train_numpy)
-                        precision_train = precision_score(label_train_numpy,pred_train_numpy)
-                        recall_train = recall_score(label_train_numpy,pred_train_numpy)
-                        f1_train = f1_score(label_train_numpy,pred_train_numpy)
+                        fpr, tpr, thresholds = roc_curve(label.flatten().cpu().numpy(),\
+                                                         out_act(pred).flatten().data.cpu().numpy())
+                        optimal_idx = np.argmax(tpr - fpr)
+                        threshold = thresholds[optimal_idx]
+                        print(threshold)
+
+                        label_train_numpy = np.where(label.flatten().cpu().numpy() > threshold , 1 , 0)
+                        pred_train_numpy = np.where(out_act(pred).flatten().data.cpu().numpy()>threshold, 1 ,0)
+                        accuracy_train += accuracy_score(label_train_numpy,pred_train_numpy)
+                        precision_train += precision_score(label_train_numpy,pred_train_numpy)
+                        recall_train += recall_score(label_train_numpy,pred_train_numpy)
+                        f1_train += f1_score(label_train_numpy,pred_train_numpy)
                         # val
                         edge_mask_val = np.concatenate((data.mask_link_positive_val, data.mask_link_negative_val), axis=-1)
                         nodes_first = torch.index_select(out, 0, torch.from_numpy(edge_mask_val[0, :]).long().to(device))
@@ -174,12 +194,12 @@ for task in ['link', 'link_pair']:
                         label = torch.cat((label_positive, label_negative)).to(device)
                         loss_val += loss_func(pred, label).cpu().data.numpy()
                         auc_val += roc_auc_score(label.flatten().cpu().numpy(), out_act(pred).flatten().data.cpu().numpy())
-                        label_val_numpy = np.where(label.flatten().cpu().numpy()>0.5,1,0)
-                        pred_val_numpy = np.where(out_act(pred).flatten().data.cpu().numpy()>0.5,1,0)
-                        accuracy_val = accuracy_score(label_val_numpy, pred_val_numpy)
-                        precision_val = precision_score(label_val_numpy, pred_val_numpy)
-                        recall_val = recall_score(label_val_numpy, pred_val_numpy)
-                        f1_val = f1_score(label_val_numpy, pred_val_numpy)
+                        label_val_numpy = np.where(label.flatten().cpu().numpy()>threshold,1,0)
+                        pred_val_numpy = np.where(out_act(pred).flatten().data.cpu().numpy()>threshold,1,0)
+                        accuracy_val += accuracy_score(label_val_numpy, pred_val_numpy)
+                        precision_val += precision_score(label_val_numpy, pred_val_numpy)
+                        recall_val += recall_score(label_val_numpy, pred_val_numpy)
+                        f1_val += f1_score(label_val_numpy, pred_val_numpy)
 
                         # test
                         edge_mask_test = np.concatenate((data.mask_link_positive_test, data.mask_link_negative_test), axis=-1)
@@ -191,12 +211,12 @@ for task in ['link', 'link_pair']:
                         label = torch.cat((label_positive, label_negative)).to(device)
                         loss_test += loss_func(pred, label).cpu().data.numpy()
                         auc_test += roc_auc_score(label.flatten().cpu().numpy(), out_act(pred).flatten().data.cpu().numpy())
-                        label_test_numpy = np.where(label.flatten().cpu().numpy()>0.5,1,0)
-                        pred_test_numpy = np.where(out_act(pred).flatten().data.cpu().numpy()>0.5,1,0)
-                        accuracy_test = accuracy_score(label_test_numpy, pred_test_numpy)
-                        precision_test = precision_score(label_test_numpy, pred_test_numpy)
-                        recall_test = recall_score(label_test_numpy, pred_test_numpy)
-                        f1_test = f1_score(label_test_numpy, pred_test_numpy)
+                        label_test_numpy = np.where(label.flatten().cpu().numpy()>threshold,1,0)
+                        pred_test_numpy = np.where(out_act(pred).flatten().data.cpu().numpy()>threshold,1,0)
+                        accuracy_test += accuracy_score(label_test_numpy, pred_test_numpy)
+                        precision_test += precision_score(label_test_numpy, pred_test_numpy)
+                        recall_test += recall_score(label_test_numpy, pred_test_numpy)
+                        f1_test += f1_score(label_test_numpy, pred_test_numpy)
 
                     loss_train /= id+1
                     loss_val /= id+1
