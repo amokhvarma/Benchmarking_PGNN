@@ -170,6 +170,7 @@ def precompute_dist_data(edge_index, num_nodes, approximate=0):
         graph.add_edges_from(edge_list)
 
         n = num_nodes
+        print(n)
         dists_array = np.zeros((n, n))
         # dists_dict = nx.all_pairs_shortest_path_length(graph,cutoff=approximate if approximate>0 else None)
         # dists_dict = {c[0]: c[1] for c in dists_dict}

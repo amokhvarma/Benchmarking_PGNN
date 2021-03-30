@@ -430,8 +430,10 @@ def make_graph(file):
     f = open(file)
     data = f.readlines()
     graph = nx.Graph()
-    for i in range(0,len(data[:10000])):
+    for i in range(0,len(data)):
         node1,node2 = int(data[i][0:-1].split("\t")[0]) ,  int(data[i][0:-1].split("\t")[0])
+        if(node1>10000 or node2 > 10000):
+            continue
         if not node1 in added_node.keys():
             added_node[node1] = 1
         if not node2 in added_node.keys():
