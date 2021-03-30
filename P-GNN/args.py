@@ -52,6 +52,8 @@ def make_args():
     parser.add_argument('--epoch_num', dest='epoch_num', default=2001, type=int)
     parser.add_argument('--repeat_num', dest='repeat_num', default=2, type=int) # 10
     parser.add_argument('--epoch_log', dest='epoch_log', default=10, type=int)
+    parser.add_argument('--agg',dest='agg',default="mean",help = "Prefered Aggregator (max,mean,sum)")
+
 
     parser.set_defaults(gpu=True, task='link', model='GCN', dataset='All',
                         cache=False, rm_feature=False,

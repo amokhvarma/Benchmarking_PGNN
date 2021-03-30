@@ -11,11 +11,11 @@ import pdb
 
 # # PGNN layer, only pick closest node for message passing
 class PGNN_layer(nn.Module):
-    def __init__(self, input_dim, output_dim,dist_trainable=True):
+    def __init__(self, input_dim, output_dim,dist_trainable=True,agg="mean"):
         super(PGNN_layer, self).__init__()
         self.input_dim = input_dim
         self.dist_trainable = dist_trainable
-
+        self.agg = agg
         if self.dist_trainable:
             self.dist_compute = Nonlinear(1, output_dim, 1)
 
@@ -45,7 +45,14 @@ class PGNN_layer(nn.Module):
         messages = self.act(messages) # n*m*d
 
         out_position = self.linear_out_position(messages).squeeze(-1)  # n*m_out
-        out_structure = torch.mean(messages, dim=1)  # n*d
+        if(self.agg == "mean"):
+            out_structure = torch.mean(messages, dim=1)  # n*d
+        elif(self.agg == "max"):
+            out_structure = torch.max(messages,dim=1).values
+        elif(self.agg == "add"):
+            out_structure = torch.sum(messages,dim=1)
+        else:
+            out_structure = torch.mean(messages,dim=1)
 
         return out_position, out_structure
 
@@ -253,16 +260,18 @@ class PGNN(torch.nn.Module):
         self.feature_pre = feature_pre
         self.layer_num = layer_num
         self.dropout = dropout
+        if("agg" in kwargs.keys()):
+            self.agg = kwargs['agg']
         if layer_num == 1:
             hidden_dim = output_dim
         if feature_pre:
             self.linear_pre = nn.Linear(input_dim, feature_dim)
-            self.conv_first = PGNN_layer(feature_dim, hidden_dim)
+            self.conv_first = PGNN_layer(feature_dim, hidden_dim,agg=self.agg)
         else:
-            self.conv_first = PGNN_layer(input_dim, hidden_dim)
+            self.conv_first = PGNN_layer(input_dim, hidden_dim,agg=self.agg)
         if layer_num>1:
-            self.conv_hidden = nn.ModuleList([PGNN_layer(hidden_dim, hidden_dim) for i in range(layer_num - 2)])
-            self.conv_out = PGNN_layer(hidden_dim, output_dim)
+            self.conv_hidden = nn.ModuleList([PGNN_layer(hidden_dim, hidden_dim,agg=self.agg) for i in range(layer_num - 2)])
+            self.conv_out = PGNN_layer(hidden_dim, output_dim,agg=self.agg)
 
     def forward(self, data):
         x = data.x

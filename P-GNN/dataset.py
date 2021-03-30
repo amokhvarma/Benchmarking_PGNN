@@ -422,7 +422,7 @@ def load_graphs(dataset_str):
 
 def load_tg_dataset(name='communities'):
     graphs, features, edge_labels,_,_,_,_ = load_graphs(name)
-    print(graphs,features,edge_labels)
+    #print(graphs,features,edge_labels)
     return nx_to_tg_data(graphs, features, edge_labels)
 
 def make_graph(file):
