@@ -304,10 +304,13 @@ def load_graphs(dataset_str):
 
             n = graph.number_of_nodes()
             label = np.zeros((n,n),dtype=int)
-            for u in list(graph.nodes):
-                for v in list(graph.nodes):
-                    if u//community_size == v//community_size and u>v:
-                        label[u,v] = 1
+            d = {}
+            for i,node in enumerate(list(graph.nodes)):
+                d[node] = i
+
+            for (u,v) in list(graph.edges()):
+                label[d[u]][d[v]] = 1
+
             rand_order = np.random.permutation(graph.number_of_nodes())
             feature = np.identity(graph.number_of_nodes())[:,rand_order]
             graphs.append(graph)
@@ -431,8 +434,8 @@ def make_graph(file):
     data = f.readlines()
     graph = nx.Graph()
     for i in range(0,len(data)):
-        node1,node2 = int(data[i][0:-1].split("\t")[0]) ,  int(data[i][0:-1].split("\t")[0])
-        if(node1>10000 or node2 > 10000):
+        node1,node2 = int(data[i][0:-1].split("\t")[0]) ,  int(data[i][0:-1].split("\t")[1])
+        if(node1>1000 or node2 > 1000):
             continue
         if not node1 in added_node.keys():
             added_node[node1] = 1
