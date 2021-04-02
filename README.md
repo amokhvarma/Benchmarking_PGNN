@@ -11,3 +11,4 @@ For further options on this, look in [args.py](P-GNN/args.py) . We also provide 
 ```
 python main_graphic.py --model PGNN --dataset grid
 ```
+You can find our results and tensorboard summaries at this [link](https://drive.google.com/drive/folders/1-DgRAV-yQ2zG_MbhnBpNPOOyc50LrK0n?usp=sharing)
