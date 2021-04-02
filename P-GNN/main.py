@@ -97,10 +97,14 @@ for task in ['link', 'link_pair']:
                 optimizer.zero_grad()
                 shuffle(data_list)
                 effective_len = len(data_list)//args.batch_size*len(data_list)
+
                 for id, data in enumerate(data_list[:effective_len]):
                     if args.permute:
                         preselect_anchor(data, layer_num=args.layer_num, anchor_num=args.anchor_num, device=device)
+                        print("Damn",data.dists_max.shape)
                     out = model(data)
+                    print("OUT " ,out.shape)
+
                     # get_link_mask(data,resplit=False)  # resample negative links
                     edge_mask_train = np.concatenate((data.mask_link_positive_train, data.mask_link_negative_train), axis=-1)
                     nodes_first = torch.index_select(out, 0, torch.from_numpy(edge_mask_train[0,:]).long().to(device))
@@ -109,6 +113,7 @@ for task in ['link', 'link_pair']:
                     label_positive = torch.ones([data.mask_link_positive_train.shape[1],], dtype=pred.dtype)
                     label_negative = torch.zeros([data.mask_link_negative_train.shape[1],], dtype=pred.dtype)
                     label = torch.cat((label_positive,label_negative)).to(device)
+                    print(nodes_first.shape,nodes_second.shape)
                     loss = loss_func(pred, label)
 
                     # update

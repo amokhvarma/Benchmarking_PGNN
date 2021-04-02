@@ -13,6 +13,7 @@ import pdb
 class PGNN_layer(nn.Module):
     def __init__(self, input_dim, output_dim,dist_trainable=True,agg="mean"):
         super(PGNN_layer, self).__init__()
+        self.od = output_dim
         self.input_dim = input_dim
         self.dist_trainable = dist_trainable
         self.agg = agg
@@ -32,19 +33,19 @@ class PGNN_layer(nn.Module):
     def forward(self, feature, dists_max, dists_argmax):
         if self.dist_trainable:
             dists_max = self.dist_compute(dists_max.unsqueeze(-1)).squeeze()
-
         subset_features = feature[dists_argmax.flatten(), :]
         subset_features = subset_features.reshape((dists_argmax.shape[0], dists_argmax.shape[1],
                                                    feature.shape[1]))
         messages = subset_features * dists_max.unsqueeze(-1)
 
         self_feature = feature.unsqueeze(1).repeat(1, dists_max.shape[1], 1)
+
         messages = torch.cat((messages, self_feature), dim=-1)
 
         messages = self.linear_hidden(messages).squeeze()
         messages = self.act(messages) # n*m*d
-
         out_position = self.linear_out_position(messages).squeeze(-1)  # n*m_out
+
         if(self.agg == "mean"):
             out_structure = torch.mean(messages, dim=1)  # n*d
         elif(self.agg == "max"):
@@ -257,11 +258,14 @@ class PGNN(torch.nn.Module):
     def __init__(self, input_dim, feature_dim, hidden_dim, output_dim,
                  feature_pre=True, layer_num=2, dropout=True, **kwargs):
         super(PGNN, self).__init__()
+        self.od = hidden_dim
         self.feature_pre = feature_pre
         self.layer_num = layer_num
         self.dropout = dropout
         if("agg" in kwargs.keys()):
             self.agg = kwargs['agg']
+        else:
+            self.agg="mean"
         if layer_num == 1:
             hidden_dim = output_dim
         if feature_pre:
@@ -277,6 +281,7 @@ class PGNN(torch.nn.Module):
         x = data.x
         if self.feature_pre:
             x = self.linear_pre(x)
+
         x_position, x = self.conv_first(x, data.dists_max, data.dists_argmax)
         if self.layer_num == 1:
             return x_position
@@ -290,6 +295,7 @@ class PGNN(torch.nn.Module):
                 x = F.dropout(x, training=self.training)
         x_position, x = self.conv_out(x, data.dists_max, data.dists_argmax)
         x_position = F.normalize(x_position, p=2, dim=-1)
+        print("PG : ", x_position.shape)
         return x_position
 
 

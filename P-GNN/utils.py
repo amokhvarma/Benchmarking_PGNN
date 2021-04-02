@@ -170,7 +170,6 @@ def precompute_dist_data(edge_index, num_nodes, approximate=0):
         graph.add_edges_from(edge_list)
 
         n = num_nodes
-        print(n)
         dists_array = np.zeros((n, n))
         # dists_dict = nx.all_pairs_shortest_path_length(graph,cutoff=approximate if approximate>0 else None)
         # dists_dict = {c[0]: c[1] for c in dists_dict}
@@ -187,6 +186,8 @@ def precompute_dist_data(edge_index, num_nodes, approximate=0):
 
 
 def get_random_anchorset(n,c=0.5):
+    # Uncomment for node_classification
+    #n = 500
     m = int(np.log2(n))
     copy = int(c*m)
     anchorset_id = []
@@ -218,6 +219,6 @@ def preselect_anchor(data, layer_num=1, anchor_num=32, anchor_size_num=4, device
         anchors = np.random.choice(data.num_nodes, size=(layer_num,anchor_num_per_size,anchor_size), replace=True)
         data.anchor_set.append(anchors)
     data.anchor_set_indicator = np.zeros((layer_num, anchor_num, data.num_nodes), dtype=int)
-
     anchorset_id = get_random_anchorset(data.num_nodes,c=1)
     data.dists_max, data.dists_argmax = get_dist_max(anchorset_id, data.dists, device)
+    print("Utils: " ,len(anchorset_id),data.dists_max.shape,data.num_nodes)

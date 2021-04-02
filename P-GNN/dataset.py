@@ -104,6 +104,7 @@ def get_tg_dataset(args, dataset_name, use_cache=True, remove_feature=False):
 
             else:
                 dists = precompute_dist_data(data.edge_index.numpy(), data.num_nodes, approximate=args.approximate)
+                print(dists,dists.shape)
                 dists_list.append(dists)
                 data.dists = torch.from_numpy(dists).float()
             if remove_feature:
@@ -390,6 +391,7 @@ def load_graphs(dataset_str):
         train_labels = np.array([edge_labels_internal[i] for i in train_ids])
         if train_labels.ndim == 1:
             train_labels = np.expand_dims(train_labels, 1)
+            print(train_labels)
 
         print("Using only features..")
         feats = np.load(dataset_dir + "/ppi-feats.npy")
